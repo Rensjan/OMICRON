@@ -6,6 +6,7 @@ from pyraws.utils.visualization_utils import equalize_tensor
 import numpy as np
 
 
+
 class image_analysis:
     # class that can analyse images
     # attributes -> compatible with equalize filter
@@ -22,23 +23,33 @@ class image_analysis:
 
         self.X = read_image(
             image_url
+        ).type(
+            torch.float32
         )  # read_image: PNG -> torch.tensor[image_channels, image_height, image_width]
         self.image_url = image_url
-        self.Xequalized = torch.zeros((3, self.X.size(dim=1), self.X.size(dim=2)))
+        self.Xequalized = torch.zeros((3, self.X.size(dim=1), self.X.size(dim=2))).type(
+            torch.float32
+        )
+        self.boolTensor = True
 
-    def plotTensor(self):
+    def plotTensor(self,dummyTensor):
         # TODO: adjust figure size
         # TODO: remove axis
 
-        dummyTensor = self.X.permute(1, 2, 0)
+        dummyTensor = dummyTensor.permute(1, 2, 0)
+        # plotting
 
-        # plt.imshow(dummyTensor / dummyTensor.max())
-        # plt.axis("off")
-        # plt.show()
+        plt.imshow(dummyTensor / dummyTensor.max())
+        plt.axis("off")
+        plt.show()
 
-        return dummyTensor
+        # return dummyTensor.permute(2, 0, 1)
+        return None
+    
 
     def plotImage_url(self):
+
+
         dummyImage = mpimg.imread(self.image_url)
         plt.imshow(dummyImage)
         plt.axis("off")
@@ -61,14 +72,33 @@ class image_analysis:
 
         return dummyTensor.permute(2, 0, 1)
 
-    # def singular_value_decomposition(self,k=20):
-    #     # dimension reduction using SVD (eigenvalue decomposition)
-    #     dummyTensor = torch.zeros((3,k,k))
+    def svd(self, r = 50):
+        # use tensor
+        # specify the reduction
+                
+        if self.boolTensor:
+            dummyTensor = self.X
 
-    #     for i in range(3): # r,g,b
-    #         u, s, v = torch.svd(self.Xequalized[i,:,:])
+        else :
+            dummyTensor = self.Xequalized
+    
+        tensor = torch.zeros((3,r,r))
+
+        for i in range(3):
+            u,s,vt = torch.linalg.svd(dummyTensor[i,:,:])
+            # dummyTensor[i,:,:] = u[:r,:r]*torch.diag(s[:r])*torch.t(v[:r,:r])
+            # print(dummyTensor[i,:,:])
+            tensor[i,:,:] = torch.mm(torch.mm(u[:r,:r], torch.diag(s[:r])), vt[:r,:r])
+            print(tensor)
+        
+        return tensor
 
     def RGB_distribution(self, dummyTensor):
+        if self.boolTensor:
+            dummyTensor = self.X
+
+        else :
+            dummyTensor = self.Xequalized
 
         reducedTensor = dummyTensor[:, :10000, :10000]
         reducedNumpy = torch.reshape(reducedTensor, (3, -1)).numpy()
